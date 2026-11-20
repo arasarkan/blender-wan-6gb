@@ -130,6 +130,7 @@ Everything is written to `outputs/<name>/`:
 | `--camera` | scene camera | camera object to render from |
 | `--start` | scene start frame | scene frame to start from |
 | `--near` / `--far` | auto | depth range in scene units, mapped to white/black |
+| `--depth-curve` | `linear` | `inverse` (disparity, like Depth Anything) gives far more contrast up close. Use it for interiors, colonnades and close-ups |
 | `--reuse-depth` | | skip the Blender render if `outputs/<name>` already has it |
 | `--server` | from setup | ComfyUI address |
 
@@ -156,6 +157,13 @@ resolution, then render the final version.
 - **Moderate camera speed** works best. Very fast moves can smear.
 - **Depth range:** the auto range covers your objects. If the depth looks flat, check `depth.mp4` with
   `--depth-only` and set `--near`/`--far` in scene units.
+- **Interiors and close-ups:** with linear depth, everything a few meters from the camera turns almost white.
+  Wan then invents stripes and noise. Use `--depth-curve inverse` and set `--near` to the distance of the
+  closest object (for example `--near 3.5 --far 80`).
+- **Give the floor something to move.** When the camera moves forward over an empty flat floor, the floor's
+  depth image is identical in every frame. Wan then paints the floor as if it were stuck to the screen while
+  the walls slide past. Scatter a few objects on the ground (rocks, snow piles, bollards, curbs, paving
+  steps) and the ground will move with the camera.
 - **Keep shots ≤ 5 s** when you can and cut between them, like real editing. Longer continuous shots work but
   cost more time and can drift slightly in color.
 - Round shapes sometimes come out square, because depth alone doesn't say "round". Say it in the prompt

@@ -39,6 +39,8 @@ def parse_args():
     p.add_argument("--camera", default=None, help="camera object name (default: scene camera)")
     p.add_argument("--near", type=float, default=None, help="depth mapped to white (default: auto)")
     p.add_argument("--far", type=float, default=None, help="depth mapped to black (default: auto)")
+    p.add_argument("--depth-curve", choices=["linear", "inverse"], default="linear",
+                   help="inverse = disparity like Depth Anything; better for close-up / interior shots")
     p.add_argument("--test-scene", action="store_true", help="build the built-in test blockout")
     p.add_argument("--no-preview", action="store_true", help="skip the gray preview pass")
     return p.parse_args(argv)
@@ -116,7 +118,7 @@ def auto_near_far(scene, cam, times):
     return near, far
 
 
-def depth_material(near, far):
+def depth_material(near, far, curve="linear"):
     mat = bpy.data.materials.new("WanDepthOverride")
     if mat.node_tree is None:  # Blender < 5 creates the node tree lazily
         mat.use_nodes = True
@@ -125,17 +127,30 @@ def depth_material(near, far):
     camdata = nt.nodes.new("ShaderNodeCameraData")
     remap = nt.nodes.new("ShaderNodeMapRange")
     remap.clamp = True
-    remap.inputs["From Min"].default_value = near
-    remap.inputs["From Max"].default_value = far
-    remap.inputs["To Min"].default_value = 1.0
-    remap.inputs["To Max"].default_value = 0.0
+    depth_socket = camdata.outputs["View Z Depth"]
+    if curve == "inverse":
+        # disparity (1/z), like Depth Anything: much more contrast close to the camera
+        inv = nt.nodes.new("ShaderNodeMath")
+        inv.operation = "DIVIDE"
+        inv.inputs[0].default_value = 1.0
+        nt.links.new(depth_socket, inv.inputs[1])
+        depth_socket = inv.outputs["Value"]
+        remap.inputs["From Min"].default_value = 1.0 / far
+        remap.inputs["From Max"].default_value = 1.0 / near
+        remap.inputs["To Min"].default_value = 0.0
+        remap.inputs["To Max"].default_value = 1.0
+    else:
+        remap.inputs["From Min"].default_value = near
+        remap.inputs["From Max"].default_value = far
+        remap.inputs["To Min"].default_value = 1.0
+        remap.inputs["To Max"].default_value = 0.0
     # cancel the sRGB display curve so the saved PNG is linear in depth
     degamma = nt.nodes.new("ShaderNodeMath")
     degamma.operation = "POWER"
     degamma.inputs[1].default_value = 2.2
     emit = nt.nodes.new("ShaderNodeEmission")
     out = nt.nodes.new("ShaderNodeOutputMaterial")
-    nt.links.new(camdata.outputs["View Z Depth"], remap.inputs["Value"])
+    nt.links.new(depth_socket, remap.inputs["Value"])
     nt.links.new(remap.outputs["Result"], degamma.inputs[0])
     nt.links.new(degamma.outputs["Value"], emit.inputs["Color"])
     nt.links.new(emit.outputs["Emission"], out.inputs["Surface"])
@@ -199,7 +214,7 @@ def main():
 
     view_layer = bpy.context.view_layer
     set_engine(r, ("BLENDER_EEVEE", "BLENDER_EEVEE_NEXT"))
-    view_layer.material_override = depth_material(near, far)
+    view_layer.material_override = depth_material(near, far, args.depth_curve)
     render_sequence(scene, times, os.path.join(out_dir, "depth"))
 
     if not args.no_preview:
@@ -212,7 +227,7 @@ def main():
         render_sequence(scene, times, os.path.join(out_dir, "gray"))
 
     info = {
-        "frames": args.frames, "fps": WAN_FPS, "near": near, "far": far,
+        "frames": args.frames, "fps": WAN_FPS, "near": near, "far": far, "depth_curve": args.depth_curve,
         "scene_fps": r.fps / r.fps_base, "scene_frames": [times[0], times[-1]],
         "camera": cam.name, "blend": bpy.data.filepath or "(test scene)",
     }

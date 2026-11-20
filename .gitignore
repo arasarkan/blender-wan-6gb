@@ -10,3 +10,6 @@ _old/
 CLAUDE.md
 .claude/
 config.json
+
+# personal projects made with the tool
+projects/

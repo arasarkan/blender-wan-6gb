@@ -337,6 +337,9 @@ def parse_args():
     src.add_argument("--start", type=float, help="scene frame to start from (default: scene start frame)")
     src.add_argument("--near", type=float, help="depth mapped to white, in scene units (default: auto)")
     src.add_argument("--far", type=float, help="depth mapped to black, in scene units (default: auto)")
+    src.add_argument("--depth-curve", choices=["linear", "inverse"], default="linear",
+                     help="inverse (disparity) gives more depth contrast up close: use it for interiors, "
+                          "colonnades, close-ups")
     src.add_argument("--blender", help="path to blender executable (default: auto-detect)")
 
     gen = p.add_argument_group("generation")
@@ -410,6 +413,7 @@ def main():
         for flag in ("camera", "start", "near", "far"):
             if getattr(a, flag) is not None:
                 cmd += [f"--{flag}", str(getattr(a, flag))]
+        cmd += ["--depth-curve", a.depth_curve]
         if a.no_preview:
             cmd.append("--no-preview")
         shutil.rmtree(out / "render", ignore_errors=True)
