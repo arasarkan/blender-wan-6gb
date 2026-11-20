@@ -1,0 +1,3 @@
+av>=12
+numpy
+pillow

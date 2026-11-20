@@ -1,0 +1,12 @@
+# generated
+outputs/
+renders/
+*.blend1
+
+# local
+.venv/
+__pycache__/
+_old/
+CLAUDE.md
+.claude/
+config.json
