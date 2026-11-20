@@ -48,7 +48,8 @@ Nothing else is needed: the setup uses the Python that comes with ComfyUI and do
 ## Setup (once)
 
 1. Install [ComfyUI](https://www.comfy.org/download) and [Blender](https://www.blender.org/download/).
-2. Download this repo: **Code → Download ZIP** and unzip it, or `git clone` it.
+2. Download this repo: **Code → Download ZIP** and unzip it, or
+   `git clone https://github.com/arasarkan/blender-wan-6gb`
 3. Start ComfyUI and wait until it has loaded.
 4. Double-click **`setup.bat`**.
 
